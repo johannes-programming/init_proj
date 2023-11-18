@@ -3,11 +3,12 @@ import datetime
 import os
 import subprocess
 import sys
+import tomllib
 from argparse import ArgumentParser
 from datetime import datetime
 from importlib import resources
 
-import tomli_w
+import fileunity
 
 
 class Prog:
@@ -21,7 +22,9 @@ class Prog:
         func = self.__getattribute__("calc_" + key)
         return func()
     def init_project(self):
-        self.project_dir = os.path.abspath(os.path.join(self.root, self.project))
+        root = os.path.expanduser(self.root)
+        project_dir = os.path.join(root, self.project)
+        self.project_dir = os.path.abspath(project_dir)
         if os.path.exists(self.project_dir):
             raise FileExistsError
         if self.github_user is None:
@@ -120,7 +123,7 @@ class Prog:
     def calc_manifest_text(self):
         return ""
     def calc_license_text(self):
-        if self.a is None:
+        if self.author is None:
             return None
         ans = resources.read_text("init_proj.drafts", "license.txt")
         ans = ans.format(year=self.year, author=self.author)
@@ -130,6 +133,33 @@ class Prog:
             return None
         ans = resources.read_text("init_proj.drafts", "gitignore.txt")
         return ans
+    def calc_config_data(self):
+        try:
+            text = resources.read_text("init_proj", "config.toml")
+        except:
+            text = ""
+        ans = fileunity.TOMLUnit.data_by_str(text)
+        return ans
+    def calc_config_author(self):
+        ans = self.config_data.get('author')
+        if (ans is None) or (type(ans) is str):
+            return ans
+        raise TypeError
+    def calc_config_email(self):
+        ans = self.config_data.get('email')
+        if (ans is None) or (type(ans) is str):
+            return ans
+        raise TypeError
+    def calc_config_github_user(self):
+        ans = self.config_data.get('github_user')
+        if (ans is None) or (type(ans) is str):
+            return ans
+        raise TypeError
+    def calc_config_root(self):
+        ans = self.config_data.get('root', '.')
+        if (ans is None) or (type(ans) is str):
+            return ans
+        raise TypeError
     def calc_git_author(self):
         if self.final_author is None:
             return None
@@ -138,20 +168,20 @@ class Prog:
             ans = f"{ans} <{self.email}>"
         return ans
     def calc_final_author(self):
-        if self.a is None:
+        if self.author is None:
             return self.email
         else:
-            return self.a
+            return self.author
     def calc_parser(self):
         ans = ArgumentParser(fromfile_prefix_chars="@")
-        ans.add_argument('--project', default='a', type=self.nameType)
+        ans.add_argument('project', nargs='?', default='a', type=self.nameType)
         ans.add_argument('--description')
-        ans.add_argument('--author', type=self.stripType)
-        ans.add_argument('--email', type=self.stripType)
-        ans.add_argument('--root', default='.')
+        ans.add_argument('--author', default=self.config_author, type=self.stripType)
+        ans.add_argument('--email', default=self.config_email, type=self.stripType)
+        ans.add_argument('--root', default=self.config_root)
         ans.add_argument('--year', default=datetime.now().year)
         ans.add_argument('--requires-python', default=self.default_requires_python())
-        ans.add_argument('--github-user')
+        ans.add_argument('--github-user', default=self.config_github_user)
         return ans
     def calc_readme_text(self):
         blocknames = "heading overview installation license credits".split()
@@ -194,8 +224,8 @@ class Prog:
         lines = list()
         lines.append(heading)
         lines.append("-" * len(heading))
-        if self.a is not None:
-            lines.append("- Author: " + self.a)
+        if self.author is not None:
+            lines.append("- Author: " + self.author)
         if self.email is not None:
             lines.append("- Email: " + self.email)
         lines.append("")
@@ -204,7 +234,7 @@ class Prog:
     def calc_setup_text(self):
         return ""
     def calc_pyproject_text(self):
-        return tomli_w.dumps(self.pyproject_data)
+        return fileunity.TOMLUnit.str_by_data(self.pyproject_data)
     def calc_pyproject_data(self):
         ans = dict()
         ans['build-system'] = self.build_system_data
