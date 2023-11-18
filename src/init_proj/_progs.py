@@ -24,7 +24,7 @@ class Prog:
         self.project_dir = os.path.abspath(os.path.join(self.r, self.n))
         if os.path.exists(self.project_dir):
             raise FileExistsError
-        if not self.git:
+        if self.github_user is None:
             os.mkdir(self.project_dir)
             return
         args = [
@@ -34,7 +34,7 @@ class Prog:
         ]
         subprocess.run(args=args, check=True)
     def git_commit(self, message, *, allow_empty=False):
-        if not self.git:
+        if self.github_user is None:
             return
         with contextlib.chdir(self.project_dir):
             args="git stage .".split()
@@ -126,7 +126,7 @@ class Prog:
         ans = ans.format(y=self.y, a=self.a)
         return ans
     def calc_gitignore_text(self):
-        if not self.git:
+        if self.github_user is None:
             return None
         ans = resources.read_text("init_proj.drafts", "gitignore.txt")
         return ans
@@ -144,14 +144,14 @@ class Prog:
             return self.a
     def calc_parser(self):
         ans = ArgumentParser(fromfile_prefix_chars="@")
-        ans.add_argument('--name', '-n', dest='n', default='a', type=self.nameType)
-        ans.add_argument('--description', '-d', dest='d')
-        ans.add_argument('--author', '-a', dest='a', type=self.stripType)
-        ans.add_argument('--email', '-e', dest='e', type=self.stripType)
-        ans.add_argument('--root', '-r', dest='r', default='.')
-        ans.add_argument('--year', '-y', dest='y', default=datetime.now().year)
-        ans.add_argument('--requires-python', '-v', dest='v', default=self.default_requires_python())
-        ans.add_argument('--no-git', dest='git', default=True, action='store_false')
+        ans.add_argument('--name', dest='n', default='a', type=self.nameType)
+        ans.add_argument('--description', dest='d')
+        ans.add_argument('--author', dest='a', type=self.stripType)
+        ans.add_argument('--email', dest='e', type=self.stripType)
+        ans.add_argument('--root', dest='r', default='.')
+        ans.add_argument('--year', dest='y', default=datetime.now().year)
+        ans.add_argument('--requires-python', dest='v', default=self.default_requires_python())
+        ans.add_argument('--github-user')
         return ans
     def calc_readme_text(self):
         blocknames = "heading overview installation license credits".split()
@@ -234,6 +234,10 @@ class Prog:
         ans['keywords'] = []
         ans['dependencies'] = []
         ans['requires-python'] = self.v
+        ans['urls'] = dict()
+        ans['urls']['Download'] = f"https://pypi.org/project/{self.n.replace('_', '-')}/#files"
+        if self.github_user is not None:
+            ans['urls']['Source'] = f"https://github.com/{self.github_user}/{self.n}"
         return ans
     def calc_classifiers(self):
         ans = list()
