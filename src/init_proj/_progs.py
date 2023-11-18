@@ -21,7 +21,7 @@ class Prog:
         func = self.__getattribute__("calc_" + key)
         return func()
     def init_project(self):
-        self.project_dir = os.path.abspath(os.path.join(self.r, self.n))
+        self.project_dir = os.path.abspath(os.path.join(self.root, self.project))
         if os.path.exists(self.project_dir):
             raise FileExistsError
         if self.github_user is None:
@@ -93,7 +93,7 @@ class Prog:
     def name_src_dir(self):
         return "src"
     def name_pkg_dir(self):
-        return self.src_dir, self.n
+        return self.src_dir, self.project
     def name_init_textfile(self):
         return self.pkg_dir, '__init__.py'
     def name_main_textfile(self):
@@ -115,7 +115,7 @@ class Prog:
         return ans
     def calc_main_text(self):
         ans = resources.read_text("init_proj.drafts", "main.txt")
-        ans = ans.format(n=self.n)
+        ans = ans.format(project=self.project)
         return ans
     def calc_manifest_text(self):
         return ""
@@ -123,7 +123,7 @@ class Prog:
         if self.a is None:
             return None
         ans = resources.read_text("init_proj.drafts", "license.txt")
-        ans = ans.format(y=self.y, a=self.a)
+        ans = ans.format(year=self.year, author=self.author)
         return ans
     def calc_gitignore_text(self):
         if self.github_user is None:
@@ -131,26 +131,26 @@ class Prog:
         ans = resources.read_text("init_proj.drafts", "gitignore.txt")
         return ans
     def calc_git_author(self):
-        if self.author is None:
+        if self.final_author is None:
             return None
-        ans = self.author
-        if self.e is not None:
-            ans = f"{ans} <{self.e}>"
+        ans = self.final_author
+        if self.email is not None:
+            ans = f"{ans} <{self.email}>"
         return ans
-    def calc_author(self):
+    def calc_final_author(self):
         if self.a is None:
-            return self.e
+            return self.email
         else:
             return self.a
     def calc_parser(self):
         ans = ArgumentParser(fromfile_prefix_chars="@")
-        ans.add_argument('--name', dest='n', default='a', type=self.nameType)
-        ans.add_argument('--description', dest='d')
-        ans.add_argument('--author', dest='a', type=self.stripType)
-        ans.add_argument('--email', dest='e', type=self.stripType)
-        ans.add_argument('--root', dest='r', default='.')
-        ans.add_argument('--year', dest='y', default=datetime.now().year)
-        ans.add_argument('--requires-python', dest='v', default=self.default_requires_python())
+        ans.add_argument('--project', default='a', type=self.nameType)
+        ans.add_argument('--description')
+        ans.add_argument('--author', type=self.stripType)
+        ans.add_argument('--email', type=self.stripType)
+        ans.add_argument('--root', default='.')
+        ans.add_argument('--year', default=datetime.now().year)
+        ans.add_argument('--requires-python', default=self.default_requires_python())
         ans.add_argument('--github-user')
         return ans
     def calc_readme_text(self):
@@ -161,22 +161,22 @@ class Prog:
         ans = "\n\n".join(blocks)
         return ans
     def calc_heading_rst_block(self):
-        lining = "=" * len(self.n)
-        ans = [lining, self.n, lining]
+        lining = "=" * len(self.project)
+        ans = [lining, self.project, lining]
         return ans
     def calc_overview_rst_block(self):
-        if self.d is None:
+        if self.description is None:
             return None
         heading = "Overview"
         lining = "-" * len(heading)
-        ans = [heading, lining, "", self.d]
+        ans = [heading, lining, "", self.description]
         return ans
     def calc_installation_rst_block(self):
         heading = "Installation"
         lining = "-" * len(heading)
-        sentence = f"To install {self.n}, you can use `pip`. Open your terminal and run:"
+        sentence = f"To install {self.project}, you can use `pip`. Open your terminal and run:"
         codestart = ".. code-block:: bash"
-        codeline = f"    pip install {self.n}"
+        codeline = f"    pip install {self.project}"
         ans = [heading, lining, "", sentence, "", codestart, "", codeline]
         return ans
     def calc_license_rst_block(self):
@@ -188,7 +188,7 @@ class Prog:
         ans = [heading, lining, "", sentence]
         return ans
     def calc_credits_rst_block(self):
-        if self.author is None:
+        if self.final_author is None:
             return None
         heading = "Credits"
         lines = list()
@@ -196,10 +196,10 @@ class Prog:
         lines.append("-" * len(heading))
         if self.a is not None:
             lines.append("- Author: " + self.a)
-        if self.e is not None:
-            lines.append("- Email: " + self.e)
+        if self.email is not None:
+            lines.append("- Email: " + self.email)
         lines.append("")
-        lines.append(f"Thank you for using {self.n}!")
+        lines.append(f"Thank you for using {self.project}!")
         return lines
     def calc_setup_text(self):
         return ""
@@ -215,16 +215,16 @@ class Prog:
             "requires" : ["setuptools>=61.0.0"],
             "build-backend" : "setuptools.build_meta",
         }
-    def calc_description(self):
-        if self.d is None:
-            return self.n
+    def calc_final_description(self):
+        if self.description is None:
+            return self.project
         else:
-            return self.d
+            return self.description
     def calc_project_data(self):
         ans = dict()
-        ans['name'] = self.n
+        ans['name'] = self.project
         ans['version'] = "0.0.0"
-        ans['description'] = self.description
+        ans['description'] = self.final_description
         if self.license_textfile is not None:
             ans['license'] = {'file' : self.license_textfile}
         ans['readme'] = self.readme_textfile
@@ -233,11 +233,11 @@ class Prog:
         ans['classifiers'] = self.classifiers
         ans['keywords'] = []
         ans['dependencies'] = []
-        ans['requires-python'] = self.v
+        ans['requires-python'] = self.requires_python
         ans['urls'] = dict()
-        ans['urls']['Download'] = f"https://pypi.org/project/{self.n.replace('_', '-')}/#files"
+        ans['urls']['Download'] = f"https://pypi.org/project/{self.project.replace('_', '-')}/#files"
         if self.github_user is not None:
-            ans['urls']['Source'] = f"https://github.com/{self.github_user}/{self.n}"
+            ans['urls']['Source'] = f"https://github.com/{self.github_user}/{self.project}"
         return ans
     def calc_classifiers(self):
         ans = list()
@@ -247,12 +247,12 @@ class Prog:
         ans.append("Programming Language :: Python :: 3")
         return ans
     def calc_authors(self):
-        if self.author is None:
+        if self.final_author is None:
             return None
-        if self.e is None:
-            return [dict(name=self.author)]
+        if self.email is None:
+            return [dict(name=self.final_author)]
         else:
-            return [dict(name=self.author, email=self.e)]
+            return [dict(name=self.final_author, email=self.email)]
     @staticmethod
     def default_requires_python():
         assert sys.version_info[0] == 3
