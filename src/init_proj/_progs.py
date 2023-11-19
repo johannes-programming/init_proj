@@ -3,7 +3,6 @@ import datetime
 import os
 import subprocess
 import sys
-import tomllib
 from argparse import ArgumentParser
 from datetime import datetime
 from importlib import resources
@@ -68,8 +67,7 @@ class Prog:
                 ans = None
             else:
                 ans = self.get_name(key)
-                with open(ans, "w") as s:
-                    s.write(text)
+                fileunity.TextUnit.by_str(text).save(ans)
         elif key.endswith("_dir"):
             ans = self.get_name(key)
             os.mkdir(ans)
@@ -184,7 +182,7 @@ class Prog:
         ans.add_argument('--github-user', default=self.config_github_user)
         return ans
     def calc_readme_text(self):
-        blocknames = "heading overview installation license credits".split()
+        blocknames = "heading overview installation license links credits".split()
         blocks = [getattr(self, x + "_rst_block") for x in blocknames]
         blocks = [x for x in blocks if x is not None]
         blocks = ['\n'.join(x) for x in blocks if type(x) is not str]
@@ -216,6 +214,17 @@ class Prog:
         lining = "-" * len(heading)
         sentence = "This project is licensed under the MIT License."
         ans = [heading, lining, "", sentence]
+        return ans
+    def calc_links_rst_block(self):
+        if len(self.urls) == 0:
+            return None
+        heading = "Links"
+        lining = "-" * len(heading)
+        points = list()
+        for k, v in self.urls.items():
+            point = f"* `{k} <{v}>`_"
+            points.append(point)
+        ans = [heading, lining, ""] + points
         return ans
     def calc_credits_rst_block(self):
         if self.final_author is None:
@@ -264,10 +273,13 @@ class Prog:
         ans['keywords'] = []
         ans['dependencies'] = []
         ans['requires-python'] = self.requires_python
-        ans['urls'] = dict()
-        ans['urls']['Download'] = f"https://pypi.org/project/{self.project.replace('_', '-')}/#files"
+        ans['urls'] = self.urls
+        return ans
+    def calc_urls(self):
+        ans = dict()
+        ans['Download'] = f"https://pypi.org/project/{self.project.replace('_', '-')}/#files"
         if self.github_user is not None:
-            ans['urls']['Source'] = f"https://github.com/{self.github_user}/{self.project}"
+            ans['Source'] = f"https://github.com/{self.github_user}/{self.project}"
         return ans
     def calc_classifiers(self):
         ans = list()

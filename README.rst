@@ -21,6 +21,12 @@ License
 
 This project is licensed under the MIT License.
 
+Links
+-----
+
+* `Download <https://pypi.org/project/init-proj/#files>`_
+* `Source <https://github.com/johannes-programming/init_proj>`_ 
+
 Credits
 -------
 - Author: Johannes Programming
