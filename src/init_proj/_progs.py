@@ -241,7 +241,7 @@ class Prog:
         lines.append(f"Thank you for using {self.project}!")
         return lines
     def calc_setup_text(self):
-        return ""
+        return "\n"
     def calc_pyproject_text(self):
         return fileunity.TOMLUnit.str_by_data(self.pyproject_data)
     def calc_pyproject_data(self):

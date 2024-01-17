@@ -123,5 +123,8 @@ dmypy.json
 # Pyre type checker
 .pyre/ 
 
+# .DS_store
+**/.DS_store
+
 # config
 src/init_proj/config.toml

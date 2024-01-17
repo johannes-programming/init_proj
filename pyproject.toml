@@ -6,7 +6,7 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "init_proj"
-version = "1.4.0"
+version = "1.4.1"
 description = "Create a minimal python package."
 readme = "README.rst"
 authors = [
